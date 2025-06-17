@@ -3,9 +3,10 @@ from supabase import create_client, Client
 from datetime import datetime
 
 # ---- CONNECT TO SUPABASE ----
-url = st.secrets["supabase"]["https://nzvmnsbtatptmzdawhvq.supabase.co"]
-key = st.secrets["supabase"]["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56dm1uc2J0YXRwdG16ZGF3aHZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAxMDE3MzEsImV4cCI6MjA2NTY3NzczMX0.paaBIC4choracy3ehB17JcpFFtKsXLUAmD_3y3MVbIg"]
+url = st.secrets["supabase"]["url"]
+key = st.secrets["supabase"]["key"]
 supabase = create_client(url, key)
+
 
 # ---- ADD TASK ----
 def add_task(title, description):
