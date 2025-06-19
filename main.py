@@ -1,40 +1,125 @@
 import streamlit as st
-from supabase import create_client, Client
-from datetime import datetime
+from supabase import create_client
 
-# ---- CONNECT TO SUPABASE ----
+# Set your Supabase project URL and API key
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
 supabase = create_client(url, key)
 
+# --- Setup status options ---
+status_options = ["Not Ready", "In Progress", "Ready"]
+status_emojis = {
+    "Not Ready": "🔴",
+    "In Progress": "🟡",
+    "Ready": "🟢"
+}
 
-# ---- ADD TASK ----
-def add_task(title, description):
-    data = {"title": title, "description": description}
-    supabase.table("tasks").insert(data).execute()
-
-# ---- GET TASKS ----
+# --- Helper Functions ---
 def get_tasks():
-    result = supabase.table("tasks").select("*").order("created_at", desc=True).execute()
-    return result.data
+    response = supabase.table("tasks").select("*").order("id", desc=True).execute()
+    return response.data
 
-# ---- UI ----
-st.title("📝 Task Tracker")
+def add_task(title, description):
+    supabase.table("tasks").insert({
+        "title": title,
+        "description": description,
+        "status": "Not Ready"
+    }).execute()
 
-with st.form("task_form"):
-    title = st.text_input("Title")
-    description = st.text_area("Description")
-    submitted = st.form_submit_button("Add Task")
+def update_status(task_id, new_status):
+    supabase.table("tasks").update({"status": new_status}).eq("id", str(task_id)).execute()
 
-    if submitted and title:
-        add_task(title, description)
-        st.success("✅ Task added")
+def delete_tasks(task_ids):
+    for task_id in task_ids:
+        supabase.table("tasks").delete().eq("id", str(task_id)).execute()
+        st.rerun()
 
-# Show tasks
-st.subheader("All Tasks")
+
+def update_task(task_id, new_title, new_description):
+    supabase.table("tasks").update({
+        "title": new_title,
+        "description": new_description
+    }).eq("id", task_id).execute()
+
+# --- Page config ---
+st.set_page_config(page_title="Task Tracker", layout="wide")
+st.title("📋 Task Tracker")
+
+# --- Task Entry Form ---
+with st.form("add_task_form", clear_on_submit=True):
+    col1, col2, col3 = st.columns([3, 5, 2])
+    with col1:
+        title = st.text_input("Task Title", placeholder="e.g., Buy groceries")
+    with col2:
+        description = st.text_input("Description", placeholder="e.g., Milk, eggs, etc.")
+    with col3:
+        submitted = st.form_submit_button("Add Task")
+
+    if submitted:
+        if title.strip():
+            add_task(title, description)
+            st.success("Task added!")
+            st.rerun()
+        else:
+            st.warning("Please enter a task title.")
+
+# --- Display Task Table ---
 tasks = get_tasks()
+selected_ids = []
+
 if tasks:
+    st.markdown("---")
+    header = st.columns([1, 3, 3, 5])
+    header[0].markdown("**✔️**")
+    header[1].markdown("**Title**")
+    header[2].markdown("**Status**")
+    header[3].markdown("**Description**")
+
     for task in tasks:
-        st.markdown(f"**{task['title']}**  \n{task['description']}  \n🕒 _{task['created_at']}_  \n---")
+        row = st.columns([1, 3, 3, 5])
+        with row[0]:
+            if st.checkbox("", key=f"check_{task['id']}"):
+                selected_ids.append(task["id"])
+
+        row[1].markdown(f"**{task['title']}**")
+        row[2].markdown(f"{status_emojis.get(task['status'], '🔴')} {task['status']}")
+        row[3].markdown(task['description'])
+
+    # --- Actions on selected items ---
+    if selected_ids:
+        st.markdown("---")
+        st.markdown(f"**Selected Task IDs:** {selected_ids}")
+        col1, col2, col3 = st.columns([4, 2, 2])
+
+        # Dropdown to choose new status
+        with col1:
+            new_status = st.selectbox("Change status to:", status_options, key="bulk_status")
+
+        # Apply status
+        with col2:
+            if st.button("✅ Apply Status"):
+                for task_id in selected_ids:
+                    update_status(task_id, new_status)
+                st.success("Status updated.")
+                st.rerun()
+
+        # Delete selected
+        with col3:
+            if st.button("🗑️ Delete Selected"):
+                delete_tasks(selected_ids)
+                st.success("Tasks deleted.")
+                st.rerun()
+
+        # Edit only if one selected
+        if len(selected_ids) == 1:
+            task_id = selected_ids[0]
+            task = next(t for t in tasks if t["id"] == task_id)
+            with st.expander("✏️ Modify Selected Task"):
+                new_title = st.text_input("New Title", value=task["title"], key="edit_title")
+                new_description = st.text_input("New Description", value=task["description"], key="edit_desc")
+                if st.button("💾 Save Changes"):
+                    update_task(task_id, new_title, new_description)
+                    st.success("Task updated.")
+                    st.rerun()
 else:
-    st.write("No tasks yet.")
+    st.info("No tasks available.")
