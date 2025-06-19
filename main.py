@@ -42,18 +42,18 @@ def update_task(task_id, new_title, new_description):
     }).eq("id", task_id).execute()
 
 # --- Page config ---
-st.set_page_config(page_title="Task Tracker", layout="wide")
+st.set_page_config(page_title="Task Tracker", layout="centered")
 st.title("📋 Task Tracker")
 
 # --- Task Entry Form ---
 with st.form("add_task_form", clear_on_submit=True):
-    col1, col2, col3 = st.columns([3, 5, 2])
+    col1, col2, col3 = st.columns([2, 3, 2])
     with col1:
-        title = st.text_input("Task Title", placeholder="e.g., Buy groceries")
+        title = st.text_input("Articolo")
     with col2:
-        description = st.text_input("Description", placeholder="e.g., Milk, eggs, etc.")
+        description = st.text_input("Fornitore")
     with col3:
-        submitted = st.form_submit_button("Add Task")
+        submitted = st.form_submit_button("Aggiungi Articolo")
 
     if submitted:
         if title.strip():
@@ -61,7 +61,7 @@ with st.form("add_task_form", clear_on_submit=True):
             st.success("Task added!")
             st.rerun()
         else:
-            st.warning("Please enter a task title.")
+            st.warning("Perfavore Aggiungi un Articolo")
 
 # --- Display Task Table ---
 tasks = get_tasks()
@@ -71,9 +71,9 @@ if tasks:
     st.markdown("---")
     header = st.columns([1, 3, 3, 5])
     header[0].markdown("**✔️**")
-    header[1].markdown("**Title**")
-    header[2].markdown("**Status**")
-    header[3].markdown("**Description**")
+    header[1].markdown("**Ariticolo**")
+    header[2].markdown("**Stato**")
+    header[3].markdown("**Discrizione**")
 
     for task in tasks:
         row = st.columns([1, 3, 3, 5])
