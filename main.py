@@ -1,6 +1,8 @@
 import streamlit as st
 from supabase import create_client
 
+
+
 # Set your Supabase project URL and API key
 url = st.secrets["supabase"]["url"]
 key = st.secrets["supabase"]["key"]
@@ -28,7 +30,7 @@ def add_task(title, description):
 
 def update_status(task_id, new_status):
     supabase.table("tasks").update({"status": new_status}).eq("id", str(task_id)).execute()
-
+    st.rerun()
 def delete_tasks(task_ids):
     for task_id in task_ids:
         supabase.table("tasks").delete().eq("id", str(task_id)).execute()
@@ -40,10 +42,17 @@ def update_task(task_id, new_title, new_description):
         "title": new_title,
         "description": new_description
     }).eq("id", task_id).execute()
+    st.rerun()
 
 # --- Page config ---
-st.set_page_config(page_title="Task Tracker", layout="centered")
-st.title("📋 Task Tracker")
+st.set_page_config(page_title="Lavori in corso", layout="centered")
+
+from streamlit_autorefresh import st_autorefresh
+
+# Automatically refresh every 60 seconds (60000 milliseconds)
+st_autorefresh(interval=10 * 1000, key="datarefresh")
+
+st.title("📋 Lavori in corso")
 
 # --- Task Entry Form ---
 with st.form("add_task_form", clear_on_submit=True):
