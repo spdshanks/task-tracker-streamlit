@@ -3,10 +3,10 @@ from supabase import create_client
 from streamlit_autorefresh import st_autorefresh
 
 # --- Page config ---
-st.set_page_config(page_title="Lavori in corso", layout="wide")
+st.set_page_config(page_title="Lavori in corso", layout="centered")
 
 # --- Auto-refresh every 60 seconds ---
-st_autorefresh(interval=60 * 1000, key="datarefresh")
+st_autorefresh(interval=20 * 1000, key="datarefresh")
 
 # --- Supabase config ---
 url = st.secrets["supabase"]["url"]
@@ -14,11 +14,11 @@ key = st.secrets["supabase"]["key"]
 supabase = create_client(url, key)
 
 # --- Status options ---
-status_options = ["Not Ready", "In Progress", "Ready"]
+status_options = ["Non pronto", "In corso", "Pronto"]
 status_emojis = {
-    "Not Ready": "🔴",
-    "In Progress": "🟡",
-    "Ready": "🟢"
+    "Non pronto": "🔴",
+    "In corso": "🟡",
+    "Pronto": "🟢"
 }
 
 # --- Helper Functions ---
@@ -73,7 +73,7 @@ st.markdown("---")
 
 selected_task_id = st.session_state.get("selected_task_id", None)
 
-left_col, right_col = st.columns([7, 5])
+left_col, right_col = st.columns([9999, 1])
 
 with left_col:
     st.markdown("### Tasks")
@@ -101,33 +101,37 @@ with left_col:
 with right_col:
     if selected_task_id:
         task = next(t for t in tasks if str(t["id"]) == selected_task_id)
-        # st.markdown("### 🎯 Selected Task")
-        st.markdown(f"**Title:** `{task['title']}`")
-    #     st.markdown(f"**Status:** `{task['status']}`")
-    #     st.markdown(f"**Description:** `{task['description']}`")
 
-        st.markdown("---")
-        st.subheader("Cambia Stato")
-        new_status = st.selectbox("", status_options, index=status_options.index(task['status']), key="one_status")
-        if st.button("✅ Update Status"):
+        st.sidebar.markdown("### 🎯 Dettagli del compito")
+        st.sidebar.markdown(f"**Titolo:** `{task['title']}`")
+        st.sidebar.markdown(f"**Stato:** `{task['status']}`")
+        st.sidebar.markdown(f"**Descrizione:** `{task['description']}`")
+
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🔁 Cambia Stato")
+        current_status = task.get("status", "")
+        default_index = status_options.index(current_status) if current_status in status_options else 0
+        new_status = st.sidebar.selectbox("Nuovo stato:", status_options, index=default_index, key="one_status")
+        if st.sidebar.button("✅ Aggiorna Stato"):
             update_status(task["id"], new_status)
-            st.success("Status updated.")
+            st.success("Stato aggiornato.")
             st.rerun()
 
-        st.markdown("---")
-        st.subheader("✏️ Modifica Articolo")
-        new_title = st.text_input("New Title", value=task["title"], key="edit_title")
-        new_description = st.text_input("New Description", value=task["description"], key="edit_desc")
-        if st.button("💾 Save Changes"):
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("✏️ Modifica Compito")
+        new_title = st.sidebar.text_input("Nuovo Titolo", value=task["title"], key="edit_title")
+        new_description = st.sidebar.text_input("Nuova Descrizione", value=task["description"], key="edit_desc")
+        if st.sidebar.button("💾 Salva Modifiche"):
             update_task(task["id"], new_title, new_description)
-            st.success("Task updated.")
+            st.success("Compito aggiornato.")
             st.rerun()
 
-        st.markdown("---")
-        if st.button("🗑️ Delete Task"):
+        st.sidebar.markdown("---")
+        if st.sidebar.button("🗑️ Elimina Compito"):
             delete_tasks([task["id"]])
-            st.success("Task deleted.")
+            st.success("Compito eliminato.")
             st.session_state.selected_task_id = None
             st.rerun()
+
     else:
-         st.info("No tasks available.")
+         st.info("")
