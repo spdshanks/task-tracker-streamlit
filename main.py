@@ -14,7 +14,7 @@ key = st.secrets["supabase"]["key"]
 supabase = create_client(url, key)
 
 # --- Status options ---
-status_options = ["Non pronto", "In lav.", "pronto"]
+status_options = ["Not Ready", "In Progress", "Ready"]
 status_emojis = {
     "Not Ready": "🔴",
     "In Progress": "🟡",
