@@ -6,7 +6,7 @@ from streamlit_autorefresh import st_autorefresh
 st.set_page_config(page_title="Lavori in corso", layout="wide")
 
 # --- Auto-refresh every 60 seconds ---
-st_autorefresh(interval=20 * 1000, key="datarefresh")
+st_autorefresh(interval=60 * 1000, key="datarefresh")
 
 # --- Supabase config ---
 url = st.secrets["supabase"]["url"]
@@ -21,6 +21,10 @@ status_emojis = {
     "Pronto": "🟢"
 }
 
+# --- Check role ---
+def is_editor():
+    return st.session_state.get("user_role") == "admin"
+
 # --- Authentication ---
 if "user_email" not in st.session_state:
     with st.form("login"):
@@ -32,7 +36,9 @@ if "user_email" not in st.session_state:
         if login_btn:
             try:
                 user = supabase.auth.sign_in_with_password({"email": email, "password": password})
-                st.session_state.user_email = email
+                user_info = user.user
+                st.session_state.user_email = user_info.email
+                st.session_state.user_role = user_info.user_metadata.get("role", "viewer")
                 st.success("Login effettuato")
                 st.rerun()
             except Exception as e:
@@ -133,31 +139,34 @@ if selected_task_id:
     st.sidebar.markdown(f"**Stato:** `{task['status']}`")
     st.sidebar.markdown(f"**Descrizione:** `{task['description']}`")
 
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("🔁 Cambia Stato")
-    current_status = task.get("status", "")
-    default_index = status_options.index(current_status) if current_status in status_options else 0
-    new_status = st.sidebar.selectbox("Nuovo stato:", status_options, index=default_index, key="one_status")
-    if st.sidebar.button("✅ Aggiorna Stato"):
-        update_status(task["id"], new_status)
-        st.success("Stato aggiornato.")
-        st.rerun()
+    if is_editor():
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🔁 Cambia Stato")
+        current_status = task.get("status", "")
+        default_index = status_options.index(current_status) if current_status in status_options else 0
+        new_status = st.sidebar.selectbox("Nuovo stato:", status_options, index=default_index, key="one_status")
+        if st.sidebar.button("✅ Aggiorna Stato"):
+            update_status(task["id"], new_status)
+            st.success("Stato aggiornato.")
+            st.rerun()
 
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("✏️ Modifica Compito")
-    new_title = st.sidebar.text_input("Nuovo Titolo", value=task["title"], key="edit_title")
-    new_description = st.sidebar.text_input("Nuova Descrizione", value=task["description"], key="edit_desc")
-    if st.sidebar.button("💾 Salva Modifiche"):
-        update_task(task["id"], new_title, new_description)
-        st.success("Compito aggiornato.")
-        st.rerun()
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("✏️ Modifica Compito")
+        new_title = st.sidebar.text_input("Nuovo Titolo", value=task["title"], key="edit_title")
+        new_description = st.sidebar.text_input("Nuova Descrizione", value=task["description"], key="edit_desc")
+        if st.sidebar.button("💾 Salva Modifiche"):
+            update_task(task["id"], new_title, new_description)
+            st.success("Compito aggiornato.")
+            st.rerun()
 
-    st.sidebar.markdown("---")
-    if st.sidebar.button("🗑️ Elimina Compito"):
-        delete_tasks([task["id"]])
-        st.success("Compito eliminato.")
-        st.session_state.selected_task_id = None
-        st.rerun()
+        st.sidebar.markdown("---")
+        if st.sidebar.button("🗑️ Elimina Compito"):
+            delete_tasks([task["id"]])
+            st.success("Compito eliminato.")
+            st.session_state.selected_task_id = None
+            st.rerun()
+    else:
+        st.sidebar.info("🔒 Solo visualizzazione. Nessuna modifica consentita.")
 
 # --- Logout ---
 if st.sidebar.button("🔓 Logout"):
